@@ -45,6 +45,41 @@
         </article>
       </div>
 
+      <div class="task-panel">
+        <div class="task-header">
+          <h2>🔧 Управление задачами</h2>
+          <button id="refresh-tasks">🔄 Обновить список задач</button>
+        </div>
+        
+        <div class="task-list-container">
+          <h3>Активные задачи</h3>
+          <div id="task-list" class="task-list">
+            <p class="empty-state">Нет активных задач</p>
+          </div>
+        </div>
+
+        <div class="task-form">
+          <h3>Новая задача</h3>
+          <div class="form-group">
+            <label for="task-json">JSON задачи:</label>
+            <textarea id="task-json" rows="6" placeholder='{
+  "task_name": "Пример задачи",
+  "geometric_operator": "QuaternionRotation",
+  "target_module": "quantum_processor",
+  "parameters": {},
+  "expected_output_metric": "quaternion_coherence"
+}'></textarea>
+          </div>
+          <div class="form-actions">
+            <label class="checkbox-container">
+              <input type="checkbox" id="task-execute" checked>
+              <span>Выполнить сразу</span>
+            </label>
+            <button id="submit-task" class="primary">Отправить задачу</button>
+          </div>
+        </div>
+      </div>
+
       <div class="metrics-raw">
         <h3>Raw Metrics Payload</h3>
         <pre id="metrics">loading…</pre>
