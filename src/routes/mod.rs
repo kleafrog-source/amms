@@ -34,8 +34,13 @@ pub fn build_router() -> Router<AppState> {
         .route("/tasks", get(tasks::list_tasks).post(tasks::create_task))
         .route("/tasks/:id", get(tasks::get_task_status))
         .route("/llm/query", post(llm::llm_query))
+        .route("/llm/plan-eqgft-task", post(llm::plan_eqgft_task))
         .route("/llm/research-campaign", post(llm::start_research_campaign))
         .route("/rules", post(rules::register_rule))
         .route("/rules/:name", delete(rules::delete_rule))
         .route("/visualization/packet", get(visualization::get_packet))
+        .route(
+            "/visualization/hopfion-field",
+            get(visualization::get_hopfion_field),
+        )
 }

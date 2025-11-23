@@ -110,6 +110,43 @@
     </section>
 
     <section>
+      <h2>EQGFT: Topological Prediction</h2>
+      <div class="campaign-form">
+        <div id="eqgft-config-panel">
+          <label>
+            Visualization Type
+            <select id="eqgft-viz-type">
+              <option value="line-plot">Line Plot</option>
+              <option value="3d-vector-field">3D Vector Field</option>
+              <option value="custom-python-script">Custom Python Script</option>
+            </select>
+          </label>
+          <label>
+            N_events
+            <input id="eqgft-n-events" type="number" value="50000" />
+          </label>
+          <label>
+            κ
+            <input id="eqgft-kappa" type="number" step="0.01" value="0.20" />
+          </label>
+          <label>
+            systematic_error
+            <input id="eqgft-systematic-error" type="number" step="1e-5" value="1e-4" />
+          </label>
+          <div id="eqgft-python-script-container" style="display: none;">
+            <label>
+              Custom Python Script
+              <textarea id="eqgft-python-script" rows="6"></textarea>
+            </label>
+          </div>
+          <button id="eqgft-run">Run</button>
+        </div>
+        <div id="eqgft-llm-panel">
+          <textarea id="eqgft-llm-query" rows="4" placeholder="Describe the EQGFT visualization you want"></textarea>
+          <button id="eqgft-send-llm">Request Task from LLM</button>
+        </div>
+        <pre id="eqgft-response"></pre>
+      </div>
       <h2>AI Research Campaign</h2>
       <div class="campaign-form">
         <label>

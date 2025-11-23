@@ -75,6 +75,29 @@ async function refreshViz() {
   }
 }
 
+async function refreshHopfionField() {
+    try {
+        const data = await api('/visualization/hopfion-field');
+        if (data) {
+            const x = data.q_x.map(v => v[1]);
+            const y = data.q_x.map(v => v[2]);
+            const z = data.q_x.map(v => v[3]);
+            const u = data.q_x.map(v => v[1]);
+            const v = data.q_x.map(v => v[2]);
+            const w = data.q_x.map(v => v[3]);
+
+            Plotly.newPlot('eqgft-response', [{
+                type: 'cone',
+                x, y, z, u, v, w,
+                sizemode: 'absolute',
+                sizeref: 1,
+            }]);
+        }
+    } catch (err) {
+        eqgftResponseEl.textContent = `Error: ${err.message}`;
+    }
+}
+
 submitTaskBtn?.addEventListener('click', async () => {
   try {
     const parsed = JSON.parse(taskJsonEl.value);
@@ -151,3 +174,96 @@ refreshMetrics();
 refreshTasks();
 refreshViz();
 statusEl.textContent = 'Ready';
+
+const eqgftVizTypeEl = document.querySelector('#eqgft-viz-type');
+const eqgftPythonScriptContainerEl = document.querySelector('#eqgft-python-script-container');
+const eqgftRunBtn = document.querySelector('#eqgft-run');
+const eqgftSendLlmBtn = document.querySelector('#eqgft-send-llm');
+const eqgftLlmQueryEl = document.querySelector('#eqgft-llm-query');
+const eqgftResponseEl = document.querySelector('#eqgft-response');
+
+eqgftVizTypeEl?.addEventListener('change', () => {
+    if (eqgftVizTypeEl.value === 'custom-python-script') {
+        eqgftPythonScriptContainerEl.style.display = 'block';
+    } else {
+        eqgftPythonScriptContainerEl.style.display = 'none';
+    }
+});
+
+eqgftRunBtn?.addEventListener('click', async () => {
+    const vizType = eqgftVizTypeEl.value;
+    const nEvents = document.querySelector('#eqgft-n-events').value;
+    const kappa = document.querySelector('#eqgft-kappa').value;
+    const systematicError = document.querySelector('#eqgft-systematic-error').value;
+    const pythonScript = document.querySelector('#eqgft-python-script').value;
+
+    let task;
+    if (vizType === 'custom-python-script') {
+        task = {
+            task_name: 'Custom Python Script',
+            geometric_operator: 'CustomPythonScript',
+            parameters: {
+                script: pythonScript,
+            },
+        };
+    } else if (vizType === 'line-plot') {
+        task = {
+            task_name: 'Simulate EQGFT Asymmetry',
+            geometric_operator: 'SimulateEqgftAsymmetry',
+            parameters: {
+                kappa: parseFloat(kappa),
+                n_events: parseInt(nEvents),
+                systematic_error: parseFloat(systematicError),
+            },
+        };
+    } else {
+        task = {
+            task_name: 'Generate Hopfion Field',
+            geometric_operator: 'GenerateHopfionField',
+            parameters: {},
+        };
+    }
+
+    try {
+        await api('/tasks', {
+            method: 'POST',
+            body: JSON.stringify({ task: task, execute: true }),
+        });
+        statusEl.textContent = 'EQGFT task submitted.';
+        refreshTasks();
+        refreshMetrics();
+        if (vizType === '3d-vector-field') {
+            refreshHopfionField();
+        }
+    } catch (err) {
+        statusEl.textContent = `EQGFT task error: ${err.message}`;
+    }
+});
+
+eqgftSendLlmBtn?.addEventListener('click', async () => {
+    try {
+        const task = await api('/llm/plan-eqgft-task', {
+            method: 'POST',
+            body: JSON.stringify({ query: eqgftLlmQueryEl.value }),
+        });
+        eqgftResponseEl.textContent = JSON.stringify(task, null, 2);
+        statusEl.textContent = 'LLM responded with EQGFT task blueprint. Submitting task...';
+
+        const { task_id } = await api('/tasks', {
+            method: 'POST',
+            body: JSON.stringify({ task: task, execute: true }),
+        });
+
+        const poll = setInterval(async () => {
+            const status = await api(`/tasks/${task_id}`);
+            if (status.status === 'Completed') {
+                clearInterval(poll);
+                statusEl.textContent = 'EQGFT task completed.';
+                refreshMetrics();
+                refreshViz();
+            }
+        }, 1000);
+    } catch (err) {
+        eqgftResponseEl.textContent = err.message;
+    }
+});

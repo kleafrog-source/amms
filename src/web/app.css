@@ -157,3 +157,10 @@ footer {
   border-top: 1px solid #272744;
   font-size: 0.8rem;
 }
+
+#eqgft-config-panel label {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: center;
+}

@@ -1,4 +1,4 @@
-﻿[package]
+[package]
 name = "mmss"
 version = "0.1.0"
 edition = "2021"
@@ -23,10 +23,21 @@ chrono = { version = "0.4.42", features = ["serde"] }
 reqwest = { version = "0.12.24", features = ["json"] }
 tower-http = { version = "0.6.6", features = ["cors", "fs", "trace"] }
 dotenvy = "0.15.7"
+mmss-eqgft = { path = "crates/mmss-eqgft", optional = true }
+
+[features]
+eqgft = ["mmss-eqgft"]
 
 [dev-dependencies]
 axum = { version = "0.7", features = ["json"] }
+approx = "0.5.1"
+mmss-core = { path = "crates/mmss-core" }
 
 [[example]]
 name = "dashboard"
 path = "examples/dashboard.rs"
+
+[[example]]
+name = "generate_data"
+path = "examples/generate_data.rs"
+required-features = ["eqgft"]

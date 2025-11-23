@@ -13,6 +13,12 @@ pub enum GeometricOperator {
     GeometricDerivation,
     /// Semantic synthesis operator (⥂S)
     SemanticSynthesis,
+    /// Simulate EQGFT asymmetry
+    SimulateEqgftAsymmetry,
+    /// Generate Hopfion field
+    GenerateHopfionField,
+    /// Execute custom Python script
+    CustomPythonScript,
 }
 
 /// Geometric task command structure for LLM interaction
@@ -67,7 +73,7 @@ pub struct GeometricMetrics {
     #[serde(default)]
     pub topological_winding: f64,
     /// Additional custom metrics
-    pub custom_metrics: HashMap<String, f64>,
+    pub custom_metrics: HashMap<String, serde_json::Value>,
 }
 
 /// Semantic anchor for linguistic elements

@@ -8,6 +8,30 @@ use crate::state::AppState;
 
 use super::{bad_request, internal_error, ApiResult};
 
+pub async fn plan_eqgft_task(
+    State(state): State<AppState>,
+    Json(payload): Json<LlmQuery>,
+) -> ApiResult<Json<GeometricTaskCommand>> {
+    let context = if payload.context.is_null() {
+        serde_json::json!({
+            "current_metrics": state
+                .processor
+                .get_metrics()
+                .map_err(internal_error)?
+        })
+    } else {
+        payload.context
+    };
+
+    let result = state
+        .llm_gateway
+        .submit_geometric_query(&payload.query, &context)
+        .await
+        .map_err(|err| bad_request(err.to_string()))?;
+
+    Ok(Json(result))
+}
+
 #[derive(Deserialize)]
 pub struct LlmQuery {
     pub query: String,

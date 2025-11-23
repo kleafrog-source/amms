@@ -28,3 +28,11 @@ pub async fn get_packet(State(state): State<AppState>) -> ApiResult<Json<Visuali
 
     Ok(Json(VisualizationResponse { packet }))
 }
+
+#[cfg(feature = "eqgft")]
+pub async fn get_hopfion_field(
+    State(state): State<AppState>,
+) -> ApiResult<Json<Option<mmss_eqgft::HopfionSolitonField>>> {
+    let field = state.processor.get_hopfion_field().map_err(internal_error)?;
+    Ok(Json(field))
+}

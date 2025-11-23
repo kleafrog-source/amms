@@ -1,6 +1,6 @@
 use crate::core::emergence_logic::EmergenceLogic;
 use crate::core::error::{Error, Result};
-use crate::core::types::{GeometricMetrics, GeometricTaskCommand, TaskExecutionResult};
+use crate::core::types::{GeometricMetrics, GeometricTaskCommand, TaskExecutionResult, GeometricOperator};
 use crate::state::{
     compute_electron_mass, compute_fine_structure, compute_quaternion_coherence, compute_zitter_entropy,
 };
@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
+#[cfg(feature = "eqgft")]
+use mmss_eqgft::{calculate_polarization_asymmetry, generate_hopfion_soliton_field, execute_python_script};
 
 /// Represents the status of a task
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -46,11 +48,14 @@ struct TaskInfo {
     status: TaskStatus,
 }
 
+use mmss_eqgft::HopfionSolitonField;
+
 /// Manages the execution of geometric tasks
 pub struct SemanticTaskProcessor {
     tasks: Arc<Mutex<HashMap<Uuid, TaskInfo>>>,
     metrics: Arc<Mutex<GeometricMetrics>>,
     emergence: Arc<Mutex<EmergenceLogic>>,
+    hopfion_field: Arc<Mutex<Option<HopfionSolitonField>>>,
 }
 
 impl SemanticTaskProcessor {
@@ -60,6 +65,7 @@ impl SemanticTaskProcessor {
             tasks: Arc::new(Mutex::new(HashMap::new())),
             metrics: Arc::new(Mutex::new(Self::baseline_metrics())),
             emergence: Arc::new(Mutex::new(EmergenceLogic::new(None))),
+            hopfion_field: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -137,8 +143,56 @@ impl SemanticTaskProcessor {
             Error::TaskExecution("Failed to access emergence logic".to_string())
         })?;
 
-        let updated = emergence.apply_operator(task.geometric_operator, &task.parameters);
-        *metrics = updated.clone();
+        match task.geometric_operator {
+            #[cfg(feature = "eqgft")]
+            GeometricOperator::SimulateEqgftAsymmetry => {
+                let kappa = task.parameters["kappa"].as_f64().unwrap_or(0.2);
+                let n_events = task.parameters["n_events"].as_u64().unwrap_or(50000);
+                let _systematic_error = task.parameters["systematic_error"].as_f64().unwrap_or(1e-4);
+                let asymmetry = calculate_polarization_asymmetry(kappa);
+                let sensitivity_curve = mmss_eqgft::calculate_sensitivity_curve(
+                    asymmetry.a,
+                    (1..=n_events).step_by(1000).collect(),
+                );
+                let mut custom_metrics = HashMap::new();
+                custom_metrics.insert(
+                    "polarization_asymmetry".to_string(),
+                    serde_json::to_value(asymmetry.a).unwrap(),
+                );
+                custom_metrics.insert(
+                    "sensitivity_curve".to_string(),
+                    serde_json::to_value(sensitivity_curve).unwrap(),
+                );
+                metrics.custom_metrics = custom_metrics;
+            }
+            #[cfg(feature = "eqgft")]
+            GeometricOperator::GenerateHopfionField => {
+                let hopfion_field = generate_hopfion_soliton_field();
+                let mut stored_field = self.hopfion_field.lock().unwrap();
+                *stored_field = Some(hopfion_field);
+            }
+            #[cfg(feature = "eqgft")]
+            GeometricOperator::CustomPythonScript => {
+                let script = task.parameters["script"].as_str().unwrap_or("");
+                match execute_python_script(script) {
+                    Ok((json_output, _png_path)) => {
+                        let custom_metrics: HashMap<String, serde_json::Value> =
+                            serde_json::from_str(&json_output).unwrap_or_default();
+                        metrics.custom_metrics = custom_metrics;
+                    }
+                    Err(e) => {
+                        return Err(Error::TaskExecution(format!(
+                            "Python script execution failed: {}",
+                            e
+                        )));
+                    }
+                }
+            }
+            _ => {
+                let updated = emergence.apply_operator(task.geometric_operator, &task.parameters);
+                *metrics = updated.clone();
+            }
+        }
 
         Ok(metrics.clone())
     }
@@ -178,6 +232,16 @@ impl SemanticTaskProcessor {
             .map(|(id, info)| (*id, info.status.clone()))
             .collect())
     }
+
+    /// Get the current Hopfion field data
+    pub fn get_hopfion_field(&self) -> Result<Option<HopfionSolitonField>> {
+        let field = self.hopfion_field.lock().map_err(|e| {
+            error!("Failed to lock hopfion_field: {}", e);
+            Error::TaskExecution("Failed to access hopfion_field".to_string())
+        })?;
+
+        Ok(field.clone())
+    }
 }
 
 #[cfg(test)]
@@ -206,6 +270,7 @@ mod tests {
     #[test]
     fn test_task_execution() {
         let processor = SemanticTaskProcessor::new();
+        let initial_metrics = processor.get_metrics().unwrap();
         let task = GeometricTaskCommand {
             task_name: "Test Task".to_string(),
             geometric_operator: GeometricOperator::QuaternionRotation,
@@ -219,7 +284,7 @@ mod tests {
         let result = processor.execute_task(task_id).unwrap();
 
         assert!(result.success);
-        assert!(result.metrics.v_geometric > 1.0);
+        assert!(result.metrics.v_geometric > initial_metrics.v_geometric);
 
         let status = processor.get_task_status(task_id).unwrap();
         assert!(matches!(status, TaskStatus::Completed(_)));

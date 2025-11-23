@@ -122,8 +122,9 @@ impl EmergenceLogic {
                     (self.metrics.quaternion_coherence * coherence_hint * 10.0).max(0.0);
                 self.metrics
                     .custom_metrics
-                    .insert(format!("anchor:{}", anchor_name), semantic_strength);
+                    .insert(format!("anchor:{}", anchor_name), serde_json::json!(semantic_strength));
             }
+            _ => {}
         }
 
         self.metrics.fine_structure_constant =
@@ -145,10 +146,10 @@ impl EmergenceLogic {
     }
 
     pub fn integrate_quaternion(&mut self, q: Quaternion) -> &GeometricMetrics {
-        self.metrics.custom_metrics.insert("q_w".to_string(), q.w);
-        self.metrics.custom_metrics.insert("q_x".to_string(), q.x);
-        self.metrics.custom_metrics.insert("q_y".to_string(), q.y);
-        self.metrics.custom_metrics.insert("q_z".to_string(), q.z);
+        self.metrics.custom_metrics.insert("q_w".to_string(), serde_json::json!(q.w));
+        self.metrics.custom_metrics.insert("q_x".to_string(), serde_json::json!(q.x));
+        self.metrics.custom_metrics.insert("q_y".to_string(), serde_json::json!(q.y));
+        self.metrics.custom_metrics.insert("q_z".to_string(), serde_json::json!(q.z));
         &self.metrics
     }
 

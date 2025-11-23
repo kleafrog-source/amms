@@ -76,6 +76,11 @@ mod tests {
             v_geometric: 1.0,
             s_geometric: 1.0,
             q_oscillator: 1.0,
+            quaternion_coherence: 0.9,
+            emergent_electron_mass: 9.1e-31,
+            fine_structure_constant: 1.0 / 137.0,
+            zitterbewegung_entropy: 0.5,
+            topological_winding: 8.9,
             custom_metrics: HashMap::new(),
         };
 

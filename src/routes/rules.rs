@@ -43,7 +43,7 @@ pub async fn register_rule(
         if let Some(delta) = payload.delta_q {
             metrics.q_oscillator += delta;
         }
-        metrics.custom_metrics.insert(format!("rule:{}", name), 1.0);
+        metrics.custom_metrics.insert(format!("rule:{}", name), serde_json::json!(1.0));
     });
 
     let response = RegisterRuleResponse {
